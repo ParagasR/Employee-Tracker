@@ -31,6 +31,8 @@ function promptMainMenu() {
     ])
     .then((answer) => {
         console.log(JSON.stringify(answer.mainMenu))
+
+        //add branching to call respective functions
     })
 }
 
@@ -52,37 +54,51 @@ function addDepartment() {
         {
             type: 'input',
             name: 'departmentName',
-            message: `Enter in the new department's name: `
+            message: `Enter in the new department's name:`
         }
     ])
     .then((answer) => {
         //create new data point in the table 'Departments'
+
+        //add an id that is randomly generated
         console.log(JSON.stringify(answer))
     })
 }
 
 function addRole() {
-    //prompt for answers and write to database
+    //prompt for answers and write to database (name,salary,department)
     inquirer.prompt([
         {
             type: 'input',
             name: 'roleName',
-            message: `Enter in the new roles's name: `
+            message: `Enter in the new roles's name:`
+        },
+        {
+            type: 'input',
+            name: 'salary',
+            message: `Enter in the salary for this role:`
+        },
+        {
+            type: 'input',
+            name: 'department',
+            message: `Enter in the department that this role belongs to:`
         }
     ])
     .then((answer) => {
-        //create new data point in the table 'Departments'
+        //create new data point in the table 'Roles'
+
+        //add an id that is randomly generated
         console.log(JSON.stringify(answer))
     })
 }
 
 function addEmployee() {
-    //prompt for answers and write to database
+    //prompt for answers and write to database (first,last,role,manager)
     inquirer.prompt([
         {
             type: 'input',
             name: 'firstName',
-            message: `Enter in the new employee's first name: `
+            message: `Enter in the new employee's first name:`
         }
     ])
     .then((answer) => {
