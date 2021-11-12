@@ -138,6 +138,8 @@ function addRole() {
             // create new data point in the table 'Roles'
             // add an id that is randomly generated
 
+            //TODO: THIS NEEDS TO BE REFACTORED TO REMOVE CALLBACK HELL
+
             //get the id based on the department selected
             db.query(`SELECT * FROM departments WHERE name = ${JSON.stringify(answer.department)}`, (err, results) => {
                 if (err) {
