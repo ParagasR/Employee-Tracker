@@ -106,15 +106,14 @@ function addDepartment() {
 
 function addRole() {
     let departmentArray = []
+    //generate the array of departments so that it could be used in the prompts
     db.query(`SELECT * FROM departments`, (err, results) => {
         if (err) {
             console.log(err)
         } else {
             results.forEach(result => departmentArray.push(result.name))
-
         }
     })
-    console.log(departmentArray)
     //prompt for answers and write to database (name,salary,department)
     return inquirer.prompt([
         {
@@ -139,14 +138,18 @@ function addRole() {
             // create new data point in the table 'Roles'
             // add an id that is randomly generated
 
+            //get the id based on the department selected
             db.query(`SELECT * FROM departments WHERE name = ${JSON.stringify(answer.department)}`, (err, results) => {
                 if (err) {
+                    //error in retrieving department data.should never fail since we are using a list generated from the table 'departments'
                     console.log(err)
                 } else {
+                    //use the result of the id so that it could be sent into the new role 
                     db.query(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${results[0].id})`, (err, results) => {
                         if (err) {
                             console.log(err)
                         } else {
+                            //successful add
                             console.log('Department added....')
                             promptMainMenu();
                         }
@@ -174,9 +177,11 @@ function addEmployee() {
             message: `Enter in the new employee's last name:`
         },
         {
-            type: 'input',
+            type: 'choice',
             name: 'role',
             message: `Enter in the new employee's role:`
+            //choice is going to be an array taken from the table Roles
+            //choice: [roles]
         }, {
             type: 'choice',
             name: 'manager',
