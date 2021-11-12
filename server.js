@@ -134,31 +134,35 @@ function addRole() {
         }
     ])
         .then((answer) => {
-
+            console.log(JSON.stringify(answer.department))
             // create new data point in the table 'Roles'
             // add an id that is randomly generated
-
-            //TODO: THIS NEEDS TO BE REFACTORED TO REMOVE CALLBACK HELL
-
-            //get the id based on the department selected
-            db.query(`SELECT * FROM departments WHERE name = ${JSON.stringify(answer.department)}`, (err, results) => {
-                if (err) {
-                    //error in retrieving department data.should never fail since we are using a list generated from the table 'departments'
-                    console.log(err)
-                } else {
-                    //use the result of the id so that it could be sent into the new role 
-                    db.query(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${results[0].id})`, (err, results) => {
-                        if (err) {
-                            console.log(err)
-                        } else {
-                            //successful add
-                            console.log('Department added....')
-                            promptMainMenu();
-                        }
-                    })
-                }
-            })
-            promptMainMenu();
+            let handle = new Promise((resolve, reject) => {
+                db.execute(`SELECT * FROM departments WHERE name = ${JSON.stringify(answer.department)}`, (err, results) => {
+                    if (err) {
+                        reject(err)
+                    } else {
+                        let returnedData = results
+                        console.log(returnedData)
+                        resolve(returnedData)
+                    }
+                })
+            }) 
+            
+            let executeAddRole = (returnedData) => {
+                db.execute(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${returnedData[0].id})`, (err, results) =>{
+                    if (err) {
+                        console.log(err)
+                        promptMainMenu();
+                    } else {
+                        console.log('The new role has been added')
+                        promptMainMenu();
+                    }
+                })
+            }
+            
+            handle
+            .then(executeAddRole)
         })
 }
 
@@ -206,3 +210,10 @@ function updateEmployeeRole() {
 
     promptMainMenu();
 }
+
+//------------------------testing area--------------------------
+
+
+
+
+
