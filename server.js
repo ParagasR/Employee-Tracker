@@ -11,16 +11,21 @@ const cTable = require('console.table');
 const inquirer = require('inquirer');
 const mysql = require('mysql2');
 
-//sample database
-// const connection = mysql.createConnection({
-//     host: 'localhost'  ,
-//     user: 'root',
-//     database: 'test'
-// })
+// set this shit up 
+// require(dotenv).config()
+
+// sample database
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    database: 'company_db',
+    password: 'root',
+})
+
 promptMainMenu();
 
 function promptMainMenu() {
-    inquirer.prompt([
+    return inquirer.prompt([
         {
             type: 'list',
             loop: true,
@@ -29,78 +34,89 @@ function promptMainMenu() {
             choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update employee role', 'Quit']
         }
     ])
-    .then((answer) => {
-        console.log(JSON.stringify(answer.mainMenu))
+        .then((answer) => {
+            console.log(JSON.stringify(answer.mainMenu))
 
-        //add switch to call respective functions
-        switch (answer.mainMenu) {
-            case 'View all departments':
-                departmentList()
-                break;
-            case 'View all roles':
-                roleList()
-                break;
-            case 'View all employees':
-                employeeList()
-                break;
-            case 'Add a department':
-                addDepartment()
-                break;
-            case 'Add a role':
-                addRole()
-                break;
-            case 'Add an employee':
-                addEmployee()
-                break;
-            case 'Update employee role':
-                updateEmployeeRole()
-                break;
-            case 'Quit':
-                console.log('Exiting program....')
-                break;
-            default:
-                console.log(`Throwing an error. I have no clue what happened. Exiting the program...`)
-        }
+            // add switch to call respective functions
+            switch (answer.mainMenu) {
+                case 'View all departments':
+                    listCompany("departments");
+                    break;
+                case 'View all roles':
+                    listCompany("roles");
+                    break;
+                case 'View all employees':
+                    listCompany("employees");
+                    break;
+                case 'Add a department':
+                    addDepartment()
+                    break;
+                case 'Add a role':
+                    addRole()
+                    break;
+                case 'Add an employee':
+                    addEmployee()
+                    break;
+                case 'Update employee role':
+                    updateEmployeeRole()
+                    break;
+                case 'Quit':
+                    console.log('Exiting program....')
+                    break;
+                default:
+                    console.log(`Throwing an error.I have no clue what happened.Exiting the program...`)
+            }
+        })
+}
+
+function listCompany(table) {
+    db.query(`SELECT * FROM ${table}`, (err, results) => {
+        console.table(results);
+        promptMainMenu();
     })
-}
-
-function departmentList() {
-    //call database to get list of all departments
-    console.log(`department list`)
-}
-
-function roleList() {
-    //call database to get list of all roles
-    console.log(`role list`)
-}
-
-function employeeList() {
-    //call database to get list of all roles
-    console.log(`emlployee list`)
 }
 
 function addDepartment() {
     console.log(`add department`)
     //prompt for answers and write to database
-    inquirer.prompt([
+    return inquirer.prompt([
         {
             type: 'input',
             name: 'departmentName',
             message: `Enter in the new department's name:`
         }
     ])
-    .then((answer) => {
-        //create new data point in the table 'Departments'
+        .then((answer) => {
+            //create new data point in the table 'Departments'
 
-        //add an id that is randomly generated
-        console.log(JSON.stringify(answer))
-    })
+            //add an id that is randomly generated
+            console.log(JSON.stringify(answer))
+            answer = JSON.stringify(answer)
+            db.query(`INSERT INTO departments (name) VALUES (${answer.departmentName})`, (err, results) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log('Department added....')
+                    promptMainMenu();
+                }
+            })
+
+        })
 }
 
 function addRole() {
-    console.log(`add role`)
+    let departmentArray = []
+    db.query(`SELECT * FROM departments`, (err, results) => {
+        if (err) {
+            console.log(err)
+        } else {
+            results.forEach(result => departmentArray.push(result.name))
+
+        }
+    })
+    console.log(departmentArray)
     //prompt for answers and write to database (name,salary,department)
-    inquirer.prompt([
+    return inquirer.prompt([
         {
             type: 'input',
             name: 'roleName',
@@ -112,17 +128,33 @@ function addRole() {
             message: `Enter in the salary for this role:`
         },
         {
-            type: 'input',
+            type: 'list',
             name: 'department',
-            message: `Enter in the department that this role belongs to:`
+            message: `Enter in the department that this role belongs to:`,
+            choices: departmentArray
         }
     ])
-    .then((answer) => {
-        //create new data point in the table 'Roles'
+        .then((answer) => {
 
-        //add an id that is randomly generated
-        console.log(JSON.stringify(answer))
-    })
+            // create new data point in the table 'Roles'
+            // add an id that is randomly generated
+
+            db.query(`SELECT * FROM departments WHERE name = ${JSON.stringify(answer.department)}`, (err, results) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    db.query(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${results[0].id})`, (err, results) => {
+                        if (err) {
+                            console.log(err)
+                        } else {
+                            console.log('Department added....')
+                            promptMainMenu();
+                        }
+                    })
+                }
+            })
+            promptMainMenu();
+        })
 }
 
 function addEmployee() {
@@ -130,7 +162,7 @@ function addEmployee() {
     //prompt for answers and write to database (first,last,role,manager)
 
     //pull data from database for the role manager and a push it into an array to be call in the last prompt
-    inquirer.prompt([
+    return inquirer.prompt([
         {
             type: 'input',
             name: 'firstName',
@@ -145,7 +177,7 @@ function addEmployee() {
             type: 'input',
             name: 'role',
             message: `Enter in the new employee's role:`
-        },{
+        }, {
             type: 'choice',
             name: 'manager',
             message: `Select the manager:`
@@ -153,13 +185,17 @@ function addEmployee() {
             //choice: [role:managers]
         }
     ])
-    .then((answer) => {
-        //create new data point in the table 'Departments'
-        console.log(JSON.stringify(answer))
-    })
+        .then((answer) => {
+            //create new data point in the table 'Departments'
+            console.log(JSON.stringify(answer))
+
+            promptMainMenu();
+        })
 }
 
 function updateEmployeeRole() {
     console.log(`update employee`)
     //select an employee from list, then choose new role from new list
+
+    promptMainMenu();
 }
