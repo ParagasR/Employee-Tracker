@@ -12,7 +12,7 @@ VALUES  ('Manager', 60000.00, NULL),
         ('Data Analyst', 45000.00, 2),
         ('Product Engineer', 75000.00, 4);
 
-INSERT INTO employees (first_Name, last_name, role_id, manager_id)
+INSERT INTO employees (first_Name, last_Name, role_id, manager_id)
 VALUES  ('Beth', 'Smith', 1, NULL),
         ('Rick', 'Sanchez', 2, NULL),
         ('Morty', 'Smith', 6, 2),

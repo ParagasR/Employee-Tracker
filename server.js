@@ -169,38 +169,75 @@ function addRole() {
 function addEmployee() {
     console.log(`add employee`)
     //prompt for answers and write to database (first,last,role,manager)
+    let managerList = ['None'];
+    let roleList = [];
+
+    let buildManagerList = new Promise ((resolve, reject) => {
+        db.execute(`SELECT * FROM employees where id < 3`, (err, results) =>{
+            if (err) {
+                reject(err);
+            } else {
+                results.forEach((result) => managerList.push(result.first_Name + ' ' + result.last_Name));
+                resolve(managerList);
+            }
+        })
+    })
+   
+    let buildRolesList = new Promise ((resolve, reject) => {
+        db.execute(`SELECT * FROM roles`, (err, results) => {
+            if(err) {
+                reject(err);
+            } else {
+                results.forEach((result) => roleList.push(result.title));
+                resolve(roleList);
+            }
+        })
+    })
 
     //pull data from database for the role manager and a push it into an array to be call in the last prompt
-    return inquirer.prompt([
-        {
-            type: 'input',
-            name: 'firstName',
-            message: `Enter in the new employee's first name:`
-        },
-        {
-            type: 'input',
-            name: 'lastName',
-            message: `Enter in the new employee's last name:`
-        },
-        {
-            type: 'choice',
-            name: 'role',
-            message: `Enter in the new employee's role:`
-            //choice is going to be an array taken from the table Roles
-            //choice: [roles]
-        }, {
-            type: 'choice',
-            name: 'manager',
-            message: `Select the manager:`
-            //choice is going to be an array taken from the table Roles and filter by manager only.
-            //choice: [role:managers]
-        }
-    ])
-        .then((answer) => {
-            //create new data point in the table 'Departments'
-            console.log(JSON.stringify(answer))
+    const prompt = (value) => {
+        return inquirer.prompt([
+            {
+                type: 'input',
+                name: 'firstName',
+                message: `Enter in the new employee's first name:`
+            },
+            {
+                type: 'input',
+                name: 'lastName',
+                message: `Enter in the new employee's last name:`
+            },
+            {
+                type: 'list',
+                name: 'role',
+                message: `Enter in the new employee's role:`,
+                //choice is going to be an array taken from the table Roles
+                choices: value[1]
+            }, {
+                type: 'list',
+                name: 'manager',
+                message: `Select the manager:`,
+                //choice is going to be an array taken from the table Roles and filter by manager only.
+                choices: value[0]
+            }
+        ])
+    }
 
-            promptMainMenu();
+    let getEmployeeId = new Promise ((resolve, reject) => {
+        db.execute(`SELECT id FROM `)
+    })
+
+        Promise.all([buildManagerList, buildRolesList])
+        .then(value => {return value})
+        .then(prompt)
+        .then((answer) => {
+            answer = JSON.parse(JSON.stringify(answer))
+            
+            if (answer.manager === 'None') {
+                manager = undefined;
+            } else {
+                manager = answer.manager;
+            }
         })
 }
 
