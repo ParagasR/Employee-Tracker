@@ -147,10 +147,10 @@ function addRole() {
                         resolve(returnedData)
                     }
                 })
-            }) 
-            
+            })
+
             let executeAddRole = (returnedData) => {
-                db.execute(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${returnedData[0].id})`, (err, results) =>{
+                db.execute(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${returnedData[0].id})`, (err, results) => {
                     if (err) {
                         console.log(err)
                         promptMainMenu();
@@ -160,39 +160,40 @@ function addRole() {
                     }
                 })
             }
-            
+
             handle
-            .then(executeAddRole)
+                .then(executeAddRole)
         })
 }
 
 function addEmployee() {
     console.log(`add employee`)
     //prompt for answers and write to database (first,last,role,manager)
-    let managerList = ['None'];
+    let managerList = [{ name: 'None', value: null }];
     let roleList = [];
 
-    let buildManagerList = new Promise ((resolve, reject) => {
-        db.execute(`SELECT * FROM employees where id < 3`, (err, results) =>{
+    let buildManagerList = new Promise((resolve, reject) => {
+        db.execute(`SELECT * FROM employees where role_id < 3`, (err, results) => {
             if (err) {
                 reject(err);
             } else {
-                results.forEach((result) => managerList.push(result.first_Name + ' ' + result.last_Name));
+                results.forEach((result) => managerList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
                 resolve(managerList);
             }
         })
     })
-   
-    let buildRolesList = new Promise ((resolve, reject) => {
+
+    let buildRolesList = new Promise((resolve, reject) => {
         db.execute(`SELECT * FROM roles`, (err, results) => {
-            if(err) {
+            if (err) {
                 reject(err);
             } else {
-                results.forEach((result) => roleList.push(result.title));
+                results.forEach((result) => roleList.push({ name: result.title, value: result.id }));
                 resolve(roleList);
             }
         })
     })
+
 
     //pull data from database for the role manager and a push it into an array to be call in the last prompt
     const prompt = (value) => {
@@ -223,21 +224,22 @@ function addEmployee() {
         ])
     }
 
-    let getEmployeeId = new Promise ((resolve, reject) => {
-        db.execute(`SELECT id FROM `)
-    })
 
-        Promise.all([buildManagerList, buildRolesList])
-        .then(value => {return value})
+
+    Promise.all([buildManagerList, buildRolesList])
+        .then(value => { return value })
         .then(prompt)
         .then((answer) => {
             answer = JSON.parse(JSON.stringify(answer))
-            
-            if (answer.manager === 'None') {
-                manager = undefined;
-            } else {
-                manager = answer.manager;
-            }
+            db.execute(`INSERT INTO employees (first_Name, last_Name, role_id, manager_id) VALUES ("${answer.firstName}", "${answer.lastName}", ${answer.role}, ${answer.manager})`, (err, result) => {
+                if (err) {
+                    console.log(err)
+                    promptMainMenu();
+                } else {
+                    console.log("Employee Added to Database");
+                    promptMainMenu();
+                }
+            })
         })
 }
 
@@ -249,8 +251,3 @@ function updateEmployeeRole() {
 }
 
 //------------------------testing area--------------------------
-
-
-
-
-
