@@ -10,16 +10,15 @@
 const cTable = require('console.table');
 const inquirer = require('inquirer');
 const mysql = require('mysql2');
+ 
+require('dotenv').config()
 
-// set this shit up 
-// require(dotenv).config()
-
-// sample database
+//pull database in database
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
     database: 'company_db',
-    password: 'root',
+    password: process.env.DB_PASS,
 })
 
 promptMainMenu();
@@ -31,7 +30,7 @@ function promptMainMenu() {
             loop: true,
             name: 'mainMenu',
             message: 'Please make a selection:',
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update employee role', 'Quit']
+            choices: ['View all departments', 'View all roles', 'View all employees', 'View Employees by Manager','Add a department', 'Add a role', 'Add an employee', 'Update employee role', 'Update manager role', 'Quit']
         }
     ])
         .then((answer) => {
@@ -40,13 +39,16 @@ function promptMainMenu() {
             // add switch to call respective functions
             switch (answer.mainMenu) {
                 case 'View all departments':
-                    listCompany("departments");
+                    viewDepartments();
                     break;
                 case 'View all roles':
-                    listCompany("roles");
+                    viewRoles();
                     break;
                 case 'View all employees':
-                    listCompany("employees");
+                    viewEmployees();
+                    break;
+                case 'View Employees by Manager':
+                    viewByManager();
                     break;
                 case 'Add a department':
                     addDepartment()
@@ -60,6 +62,9 @@ function promptMainMenu() {
                 case 'Update employee role':
                     updateEmployeeRole()
                     break;
+                case 'Update manager role':
+                    updateEmployeeManager()
+                    break;
                 case 'Quit':
                     console.log('Exiting program....')
                     process.exit;
@@ -70,13 +75,71 @@ function promptMainMenu() {
         })
 }
 
-function listCompany(table) {
-    db.query(`SELECT * FROM ${table}`, (err, results) => {
+//----------------------------View *----------------------------//
+function viewDepartments() {
+    db.execute(`SELECT * FROM ${table}`, (err, results) => {
         console.table(results);
         promptMainMenu();
     })
 }
 
+function viewRoles() {
+    db.execute(`SELECT roles.id, roles.title, roles.salary, departments.name as department FROM roles LEFT JOIN departments 
+    ON roles.department_id = departments.id;`, (err, results) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(results)
+        }
+    })
+}
+
+function viewEmployees() {
+    db.execute(`SELECT employees.id, CONCAT (employees.first_name, ' ',employees.last_name) as employee, roles.title, departments.name AS department, 
+    roles.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager FROM employees
+     LEFT JOIN roles on employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id 
+     LEFT JOIN employees manager ON employees.manager_id = manager.id`, (err, results) =>{
+         if (err) {
+             console.log(err)
+         } else {
+             console.table(results)
+             promptMainMenu();
+         }
+     })
+}
+
+function viewByManager() {
+
+    const prompt = (value)  => {
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'manager',
+                message: 'Select a manager: ',
+                choices: value
+            }
+        ])
+    }
+
+    buildManagerList
+        .then((value) => {return value})
+        .then(prompt)
+        .then((answer) => {
+            answer = JSON.parse(JSON.stringify(answer))
+
+            db.execute(`SELECT employees.id, CONCAT (employees.first_Name, ' ', employees.last_Name) as Employees, roles.title FROM employees 
+            LEFT JOIN roles on employees.role_id = roles.id WHERE employees.manager_id = ${answer.manager}`, (err, result) =>{
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.table(result);
+                    promptMainMenu();
+                }
+            })
+        })
+}       
+
+//----------------------------Add to *----------------------------//
 function addDepartment() {
     console.log(`add department`)
     //prompt for answers and write to database
@@ -89,11 +152,10 @@ function addDepartment() {
     ])
         .then((answer) => {
             //create new data point in the table 'Departments'
-
             //add an id that is randomly generated
-            console.log(JSON.stringify(answer))
-            answer = JSON.stringify(answer)
-            db.query(`INSERT INTO departments (name) VALUES (${answer.departmentName})`, (err, results) => {
+
+            answer = JSON.parse(JSON.stringify(answer))
+            db.execute(`INSERT INTO departments (name) VALUES ("${answer.departmentName}")`, (err, results) => {
                 if (err) {
                     console.log(err)
                 } else {
@@ -105,14 +167,14 @@ function addDepartment() {
         })
 }
 
-function addRole() {
+function addRole() { 
+    //generate the array of departments
     let departmentArray = []
-    //generate the array of departments so that it could be used in the prompts
-    db.query(`SELECT * FROM departments`, (err, results) => {
+    db.execute(`SELECT * FROM departments`, (err, results) => {
         if (err) {
             console.log(err)
         } else {
-            results.forEach(result => departmentArray.push(result.name))
+            results.forEach(result => departmentArray.push({name: result.name, value: result.id}))
         }
     })
     //prompt for answers and write to database (name,salary,department)
@@ -134,68 +196,25 @@ function addRole() {
             choices: departmentArray
         }
     ])
-        .then((answer) => {
-            console.log(JSON.stringify(answer.department))
-            // create new data point in the table 'Roles'
-            // add an id that is randomly generated
-            let handle = new Promise((resolve, reject) => {
-                db.execute(`SELECT * FROM departments WHERE name = ${JSON.stringify(answer.department)}`, (err, results) => {
-                    if (err) {
-                        reject(err)
-                    } else {
-                        let returnedData = results
-                        console.log(returnedData)
-                        resolve(returnedData)
-                    }
-                })
-            })
-
-            let executeAddRole = (returnedData) => {
-                db.execute(`INSERT INTO roles (title, salary, department_id) VALUES (${JSON.stringify(answer.roleName)}, ${JSON.stringify(answer.salary)}, ${returnedData[0].id})`, (err, results) => {
-                    if (err) {
-                        console.log(err)
-                        promptMainMenu();
-                    } else {
-                        console.log('The new role has been added')
-                        promptMainMenu();
-                    }
-                })
+    .then((answer) => {
+        // create new data point in the table 'Roles'
+        // add an id that is randomly generated
+        answer = JSON.parse(JSON.stringify(answer))  
+        db.execute(`INSERT INTO roles (title, salary, department_id) VALUES ("${answer.roleName}", ${answer.salary}, ${answer.department})`, (err, results) => {
+            if (err) {
+                console.log(err)
+                promptMainMenu();
+            } else {
+                console.log('The new role has been added')
+                promptMainMenu();
             }
-
-            handle
-                .then(executeAddRole)
-        })
+        })  
+    })
 }
 
 function addEmployee() {
     console.log(`add employee`)
     //prompt for answers and write to database (first,last,role,manager)
-
-    let buildManagerList = new Promise((resolve, reject) => {
-        let managerList = [{ name: 'None', value: null }];
-        db.execute(`SELECT * FROM employees where role_id < 3`, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                results.forEach((result) => managerList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
-                resolve(managerList);
-            }
-        })
-    })
-
-    let buildRolesList = new Promise((resolve, reject) => {
-        let roleList = [];
-        db.execute(`SELECT * FROM roles`, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                results.forEach((result) => roleList.push({ name: result.title, value: result.id }));
-                resolve(roleList);
-            }
-        })
-    })
-
-
     //pull data from database for the role manager and a push it into an array to be call in the last prompt
     const prompt = (value) => {
         return inquirer.prompt([
@@ -225,8 +244,6 @@ function addEmployee() {
         ])
     }
 
-
-
     Promise.all([buildManagerList, buildRolesList])
         .then(value => { return value })
         .then(prompt)
@@ -244,34 +261,10 @@ function addEmployee() {
         })
 }
 
+//----------------------------Update *----------------------------//
 function updateEmployeeRole() {
     console.log(`update employee`)
     //select an employee from list, then choose new role from new list
-
-    let buildEmployeeList = new Promise((resolve, reject) => {
-        let employeeList = [];
-        db.execute(`SELECT * FROM employees`, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                results.forEach((result) => employeeList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
-                resolve(employeeList);
-            }
-        })
-    })
-
-    let buildRolesList = new Promise((resolve, reject) => {
-        let roleList = []
-        db.execute(`SELECT * FROM roles`, (err, results) => {
-            if (err) {
-                reject(err);
-            } else {
-                results.forEach((result) => roleList.push({ name: result.title, value: result.id }));
-                resolve(roleList);
-            }
-        })
-    })
-
     const prompt = (value) => {
         return inquirer.prompt([
             {
@@ -296,7 +289,6 @@ function updateEmployeeRole() {
         .then(prompt)
         .then((answer) => {
             answer = JSON.parse(JSON.stringify(answer))
-            // console.log(answer.role)
             db.execute(`UPDATE employees SET role_id = ${answer.role} WHERE id = ${answer.employee}`, (err, results) => {
                 if (err) {
                     console.log(err)
@@ -306,6 +298,75 @@ function updateEmployeeRole() {
                 }
             });
         })
-}
+    }
 
-//------------------------testing area--------------------------
+function updateEmployeeManager() {
+    Promise.all([buildEmployeeList, buildManagerList])
+    .then((value) => {return value})
+    .then(prompt)
+    .then((answer) => {
+        answer = JSON.parse(JSON.stringify(answer));
+
+        db.execute(`UPDATE employees SET manager_id = ${answer.manager} WHERE id = ${answer.employee}`, (err, results) => {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log(`Employee's manager has been updated...`);
+                promptMainMenu();
+            }
+        })
+    })
+
+    const prompt = (value) => {
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                message: 'Select the employee to update: ',
+                choices: value[0]
+            },
+            {
+                type: 'list',
+                name: 'manager',
+                message: 'Select the new the manager that the employee will be assigned to: ',
+                choices: value[1]
+            }
+        ])
+    }
+}
+//------------------------Global Promises--------------------------//
+let buildRolesList = new Promise((resolve, reject) => {
+    let roleList = [];
+    db.execute(`SELECT * FROM roles`, (err, results) => {
+        if (err) {
+            reject(err);
+        } else {
+            results.forEach((result) => roleList.push({ name: result.title, value: result.id }));
+            resolve(roleList);
+        }
+    })
+})
+
+let buildManagerList = new Promise((resolve, reject) => {
+    let managerList = [{ name: 'None', value: null }];
+    db.execute(`SELECT * FROM employees where role_id < 3`, (err, results) => {
+        if (err) {
+            reject(err);
+        } else {
+            results.forEach((result) => managerList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
+            resolve(managerList);
+        }
+    })
+})
+
+let buildEmployeeList = new Promise((resolve, reject) => {
+    let employeeList = [];
+    db.execute(`SELECT * FROM employees`, (err, results) => {
+        if (err) {
+            reject(err);
+        } else {
+            results.forEach((result) => employeeList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
+            resolve(employeeList);
+        }
+    })
+})

@@ -1,2 +1,2 @@
-SOURCE db/schema.sql
-SOURCE db/seeds.sql
+SOURCE db/schema.sql;
+SOURCE db/seeds.sql;
