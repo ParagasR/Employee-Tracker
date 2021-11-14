@@ -62,6 +62,7 @@ function promptMainMenu() {
                     break;
                 case 'Quit':
                     console.log('Exiting program....')
+                    process.exit;
                     break;
                 default:
                     console.log(`Throwing an error.I have no clue what happened.Exiting the program...`)
@@ -169,10 +170,9 @@ function addRole() {
 function addEmployee() {
     console.log(`add employee`)
     //prompt for answers and write to database (first,last,role,manager)
-    let managerList = [{ name: 'None', value: null }];
-    let roleList = [];
 
     let buildManagerList = new Promise((resolve, reject) => {
+        let managerList = [{ name: 'None', value: null }];
         db.execute(`SELECT * FROM employees where role_id < 3`, (err, results) => {
             if (err) {
                 reject(err);
@@ -184,6 +184,7 @@ function addEmployee() {
     })
 
     let buildRolesList = new Promise((resolve, reject) => {
+        let roleList = [];
         db.execute(`SELECT * FROM roles`, (err, results) => {
             if (err) {
                 reject(err);
@@ -247,7 +248,64 @@ function updateEmployeeRole() {
     console.log(`update employee`)
     //select an employee from list, then choose new role from new list
 
-    promptMainMenu();
+    let buildEmployeeList = new Promise((resolve, reject) => {
+        let employeeList = [];
+        db.execute(`SELECT * FROM employees`, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                results.forEach((result) => employeeList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
+                resolve(employeeList);
+            }
+        })
+    })
+
+    let buildRolesList = new Promise((resolve, reject) => {
+        let roleList = []
+        db.execute(`SELECT * FROM roles`, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                results.forEach((result) => roleList.push({ name: result.title, value: result.id }));
+                resolve(roleList);
+            }
+        })
+    })
+
+    const prompt = (value) => {
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                message: `Select the employee to update:`,
+                //choice is going to be an array taken from the table employees.
+                choices: value[0]
+            },
+            {
+                type: 'list',
+                name: 'role',
+                message: `Select the new role:`,
+                //choice is going to be an array taken from the table Roles.
+                choices: value[1]
+            }
+        ])
+    }
+
+    Promise.all([buildEmployeeList, buildRolesList])
+        .then((value) => { return value })
+        .then(prompt)
+        .then((answer) => {
+            answer = JSON.parse(JSON.stringify(answer))
+            // console.log(answer.role)
+            db.execute(`UPDATE employees SET role_id = ${answer.role} WHERE id = ${answer.employee}`, (err, results) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log(`Employee's role has been updated...`);
+                    promptMainMenu();
+                }
+            });
+        })
 }
 
 //------------------------testing area--------------------------
