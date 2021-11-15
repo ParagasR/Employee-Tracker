@@ -77,7 +77,7 @@ function promptMainMenu() {
                     break;
                 case 'Quit':
                     console.log('Exiting program....')
-                    process.exit;
+                    process.exit();
                     break;
                 default:
                     console.log(`Throwing an error.I have no clue what happened.Exiting the program...`)
@@ -90,6 +90,7 @@ function viewDepartments() {
     db.execute(`SELECT * FROM departments`, (err, results) => {
         if (err) {
             console.log(err)
+            process.exit();
         } else {
             console.table(results)
             promptMainMenu();
@@ -102,6 +103,7 @@ function viewRoles() {
     ON roles.department_id = departments.id;`, (err, results) => {
         if (err) {
             console.log(err)
+            process.exit();
         } else {
             console.table(results)
             promptMainMenu();
@@ -116,6 +118,7 @@ function viewEmployees() {
      LEFT JOIN employees manager ON employees.manager_id = manager.id`, (err, results) => {
         if (err) {
             console.log(err)
+            process.exit();
         } else {
             console.table(results)
             promptMainMenu();
@@ -144,6 +147,7 @@ function viewByManager() {
             LEFT JOIN roles on employees.role_id = roles.id WHERE employees.manager_id = ${answer.manager}`, (err, result) => {
                 if (err) {
                     console.log(err)
+                    process.exit();
                 } else {
                     console.table(result)
                     promptMainMenu();
@@ -172,6 +176,7 @@ function viewEmployeesByDepartment() {
         LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id WHERE roles.department_id = ${answer.department}`, (err, results) => {
                 if (err) {
                     console.log(err)
+                    process.exit();
                 } else {
                     console.table(results)
                     promptMainMenu();
@@ -198,6 +203,7 @@ function addDepartment() {
             db.execute(`INSERT INTO departments (name) VALUES ("${answer.departmentName}")`, (err, results) => {
                 if (err) {
                     console.log(err)
+                    process.exit();
                 } else {
                     console.log('Department added....')
                     promptMainMenu();
@@ -213,6 +219,7 @@ function addRole() {
     db.execute(`SELECT * FROM departments`, (err, results) => {
         if (err) {
             console.log(err)
+            process.exit();
         } else {
             results.forEach(result => departmentArray.push({ name: result.name, value: result.id }))
         }
@@ -243,7 +250,7 @@ function addRole() {
             db.execute(`INSERT INTO roles (title, salary, department_id) VALUES ("${answer.roleName}", ${answer.salary}, ${answer.department})`, (err, results) => {
                 if (err) {
                     console.log(err)
-                    promptMainMenu();
+                    process.exit();
                 } else {
                     console.log('The new role has been added')
                     promptMainMenu();
@@ -292,7 +299,7 @@ function addEmployee() {
             db.execute(`INSERT INTO employees (first_Name, last_Name, role_id, manager_id) VALUES ("${answer.firstName}", "${answer.lastName}", ${answer.role}, ${answer.manager})`, (err, result) => {
                 if (err) {
                     console.log(err)
-                    promptMainMenu();
+                    process.exit();
                 } else {
                     console.log("Employee Added to Database");
                     promptMainMenu();
@@ -332,6 +339,7 @@ function updateEmployeeRole() {
             db.execute(`UPDATE employees SET role_id = ${answer.role} WHERE id = ${answer.employee}`, (err, results) => {
                 if (err) {
                     console.log(err)
+                    process.exit();
                 } else {
                     console.log(`Employee's role has been updated...`);
                     promptMainMenu();
@@ -350,6 +358,7 @@ function updateEmployeeManager() {
             db.execute(`UPDATE employees SET manager_id = ${answer.manager} WHERE id = ${answer.employee}`, (err, results) => {
                 if (err) {
                     console.log(err);
+                    process.exit();
                 } else {
                     console.log(`Employee's manager has been updated...`);
                     promptMainMenu();
@@ -399,6 +408,7 @@ function budgetSum() {
         LEFT JOIN departments ON roles.department_id = departments.id WHERE roles.id = ${answer.department}`, (err, result) => {
                 if (err) {
                     console.log(err)
+                    process.exit();
                 } else {
                     console.table(result)
                     promptMainMenu();
@@ -451,6 +461,7 @@ function deleteSomething() {
             db.execute(`DELETE FROM ${selection} WHERE id = ${answer.selection}`, (err, result) => {
                 if (err) {
                     console.log(err)
+                    process.exit();
                 } else {
                     console.log(`Item deleted...`)
                     promptMainMenu();
