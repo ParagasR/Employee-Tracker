@@ -31,7 +31,7 @@ function promptMainMenu() {
             name: 'mainMenu',
             message: 'Please make a selection:',
             choices: ['View all Departments', 'View all Roles', 'View all Employees', 'View Employees by Manager', 'View Employees by Department',
-            'Add a Department', 'Add a Role', 'Add an Employee', 'Update Employee Role', 'Update Manager Role', 'Get the Budget of a Department', 'Quit']
+            'Add a Department', 'Add a Role', 'Add an Employee', 'Update Employee Role', 'Update Manager Role', 'Get the Budget of a Department', 'Delete Something','Quit']
         }
     ])
         .then((answer) => {
@@ -71,6 +71,9 @@ function promptMainMenu() {
                     break;
                 case 'Get the Budget of a Department':
                     budgetSum();
+                    break;
+                case 'Delete Something':
+                    deleteSomething();
                     break;
                 case 'Quit':
                     console.log('Exiting program....')
@@ -399,6 +402,57 @@ function budgetSum() {
             } else {
                 console.table(result)
                 promptMainMenu();
+            }
+        })
+    })
+}
+//------------------------Delete--------------------------//
+function deleteSomething() {
+    let selection = ['Departments', 'Roles', 'Employees'];
+
+    return inquirer.prompt([
+        {
+            type: 'list',
+            name: 'selection',
+            message: 'Choose where you would like to direct yourself to: ',
+            choices: selection
+        }
+    ])
+    .then((answer) => {
+        answer = JSON.parse(JSON.stringify(answer));
+        selection = answer.selection;
+        console.log(selection);
+        switch(answer.selection) {
+            case 'Departments':
+                return buildDepartmentList;
+            case 'Roles':
+                return buildRolesList;
+            case 'Employees':
+                return buildEmployeeList;
+            default:
+                console.log('It broke again...');
+                break;
+        }
+    })
+    .then((list) => {
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'selection',
+                message: 'Choose which to delete:',
+                choices: list
+            }
+        ])
+    })
+    .then((answer) => {
+        answer = JSON.parse(JSON.stringify(answer))
+
+        db.execute(`DELETE FROM ${selection} WHERE id = ${answer.selection}`, (err, result) => {
+            if (err) {
+                console.log(err)
+            } else {
+                console.log(`Item deleted...`)
+                promptMainMenu();   
             }
         })
     })
