@@ -5,8 +5,8 @@ VALUES  ("Customer Service"),
         ("Product Design");
 
 INSERT INTO roles (title, salary, department_id)
-VALUES  ('Manager', 60000.00, NULL),
-        ('Project Manager', 90000.00, 4),
+VALUES  ('Manager', 60000.00, 3),
+        ('Project Manager', 90000.00, 3),
         ('Sales Representative', 40000.00, 1),
         ('Customer Representative', 20000.00, 1),
         ('Data Analyst', 45000.00, 2),

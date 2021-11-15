@@ -30,7 +30,8 @@ function promptMainMenu() {
             loop: true,
             name: 'mainMenu',
             message: 'Please make a selection:',
-            choices: ['View all departments', 'View all roles', 'View all employees', 'View Employees by Manager','Add a department', 'Add a role', 'Add an employee', 'Update employee role', 'Update manager role', 'Quit']
+            choices: ['View all Departments', 'View all Roles', 'View all Employees', 'View Employees by Manager', 'View Employees by Department',
+            'Add a Department', 'Add a Role', 'Add an Employee', 'Update Employee Role', 'Update Manager Role', 'Get the Budget of a Department', 'Quit']
         }
     ])
         .then((answer) => {
@@ -38,32 +39,38 @@ function promptMainMenu() {
 
             // add switch to call respective functions
             switch (answer.mainMenu) {
-                case 'View all departments':
+                case 'View all Departments':
                     viewDepartments();
                     break;
-                case 'View all roles':
+                case 'View all Roles':
                     viewRoles();
                     break;
-                case 'View all employees':
+                case 'View all Employees':
                     viewEmployees();
                     break;
                 case 'View Employees by Manager':
                     viewByManager();
                     break;
-                case 'Add a department':
+                case 'View Employees by Department':
+                    viewEmployeesByDepartment();
+                    break;
+                case 'Add a Department':
                     addDepartment()
                     break;
-                case 'Add a role':
+                case 'Add a Role':
                     addRole()
                     break;
-                case 'Add an employee':
+                case 'Add an Employee':
                     addEmployee()
                     break;
-                case 'Update employee role':
+                case 'Update Employee Role':
                     updateEmployeeRole()
                     break;
-                case 'Update manager role':
+                case 'Update Manager Role':
                     updateEmployeeManager()
+                    break;
+                case 'Get the Budget of a Department':
+                    budgetSum();
                     break;
                 case 'Quit':
                     console.log('Exiting program....')
@@ -77,9 +84,13 @@ function promptMainMenu() {
 
 //----------------------------View *----------------------------//
 function viewDepartments() {
-    db.execute(`SELECT * FROM ${table}`, (err, results) => {
-        console.table(results);
-        promptMainMenu();
+    db.execute(`SELECT * FROM departments`, (err, results) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(results)
+            promptMainMenu();
+        }
     })
 }
 
@@ -90,6 +101,7 @@ function viewRoles() {
             console.log(err)
         } else {
             console.table(results)
+            promptMainMenu();
         }
     })
 }
@@ -98,18 +110,17 @@ function viewEmployees() {
     db.execute(`SELECT employees.id, CONCAT (employees.first_name, ' ',employees.last_name) as employee, roles.title, departments.name AS department, 
     roles.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager FROM employees
      LEFT JOIN roles on employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id 
-     LEFT JOIN employees manager ON employees.manager_id = manager.id`, (err, results) =>{
-         if (err) {
-             console.log(err)
-         } else {
-             console.table(results)
-             promptMainMenu();
-         }
+     LEFT JOIN employees manager ON employees.manager_id = manager.id`, (err, results) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.table(results)
+            promptMainMenu();
+        }
      })
 }
 
 function viewByManager() {
-
     const prompt = (value)  => {
         return inquirer.prompt([
             {
@@ -126,19 +137,45 @@ function viewByManager() {
         .then(prompt)
         .then((answer) => {
             answer = JSON.parse(JSON.stringify(answer))
-
             db.execute(`SELECT employees.id, CONCAT (employees.first_Name, ' ', employees.last_Name) as Employees, roles.title FROM employees 
-            LEFT JOIN roles on employees.role_id = roles.id WHERE employees.manager_id = ${answer.manager}`, (err, result) =>{
+            LEFT JOIN roles on employees.role_id = roles.id WHERE employees.manager_id = ${answer.manager}`, (err, result) => {
                 if (err) {
-                    console.log(err);
+                    console.log(err)
                 } else {
-                    console.table(result);
+                    console.table(result)
                     promptMainMenu();
                 }
             })
         })
 }       
 
+function viewEmployeesByDepartment() {
+    const prompt = (value) => {
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'department',
+                message: 'Select a department: ',
+                choices: value
+            }
+        ])
+    }
+
+    buildDepartmentList
+    .then((value) => {return value})
+    .then(prompt)
+    .then((answer) => {
+        db.execute(`SELECT employees.id, CONCAT (employees.first_Name, ' ', employees.last_Name) as Employees, roles.title FROM employees 
+        LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id WHERE roles.department_id = ${answer.department}`, (err,results) => {
+            if (err) {
+                console.log(err)
+            } else {
+                console.table(results)
+                promptMainMenu();
+            }
+        })
+    })
+}
 //----------------------------Add to *----------------------------//
 function addDepartment() {
     console.log(`add department`)
@@ -334,6 +371,38 @@ function updateEmployeeManager() {
         ])
     }
 }
+
+//------------------------Sums--------------------------//
+function budgetSum() {
+    const prompt = (value) => {
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'department',
+                message: 'Please select a department: ',
+                choices: value
+            }
+        ])
+
+    }
+
+    buildDepartmentList
+    .then((value) => {return value})
+    .then(prompt)
+    .then((answer) => {
+        answer = JSON.parse(JSON.stringify(answer));
+
+        db.execute(`SELECT SUM(roles.salary) as salaryBudeget FROM employees LEFT JOIN roles ON employees.role_id = roles.id 
+        LEFT JOIN departments ON roles.department_id = departments.id WHERE roles.id = ${answer.department}`, (err, result) => {
+            if(err) {
+                console.log(err)
+            } else {
+                console.table(result)
+                promptMainMenu();
+            }
+        })
+    })
+}
 //------------------------Global Promises--------------------------//
 let buildRolesList = new Promise((resolve, reject) => {
     let roleList = [];
@@ -367,6 +436,18 @@ let buildEmployeeList = new Promise((resolve, reject) => {
         } else {
             results.forEach((result) => employeeList.push({ name: result.first_Name + ' ' + result.last_Name, value: result.id }));
             resolve(employeeList);
+        }
+    })
+})
+
+let buildDepartmentList = new Promise ((resolve, reject) => {
+    let departmentList = [];
+    db.execute(`SELECT * FROM departments`, (err, results) => {
+        if (err) {
+            reject(err);
+        } else {
+            results.forEach((result) => departmentList.push({ name: result.name, value: result.id }));
+            resolve(departmentList);
         }
     })
 })
