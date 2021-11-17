@@ -35,8 +35,6 @@ function promptMainMenu() {
         }
     ])
         .then((answer) => {
-            console.log(JSON.stringify(answer.mainMenu))
-
             // add switch to call respective functions
             switch (answer.mainMenu) {
                 case 'View all Departments':
@@ -78,9 +76,9 @@ function promptMainMenu() {
                 case 'Quit':
                     console.log('Exiting program....')
                     process.exit();
-                    break;
                 default:
                     console.log(`Throwing an error.I have no clue what happened.Exiting the program...`)
+                    process.exit();
             }
         })
 }
@@ -111,6 +109,7 @@ function viewRoles() {
     })
 }
 
+//combined the 1st and last names of the employee and put them in the same column named 'employee', did the same thing for the managers, and joined the table based on respective keys
 function viewEmployees() {
     db.execute(`SELECT employees.id, CONCAT (employees.first_name, ' ',employees.last_name) as employee, roles.title, departments.name AS department, 
     roles.salary, CONCAT (manager.first_name, " ", manager.last_name) AS manager FROM employees
@@ -143,6 +142,7 @@ function viewByManager() {
         .then(prompt)
         .then((answer) => {
             answer = JSON.parse(JSON.stringify(answer))
+            //combined the 1st and last names of the employee and put them in the same column named 'employee' and joined the table based on respective keys
             db.execute(`SELECT employees.id, CONCAT (employees.first_Name, ' ', employees.last_Name) as Employees, roles.title FROM employees 
             LEFT JOIN roles on employees.role_id = roles.id WHERE employees.manager_id = ${answer.manager}`, (err, result) => {
                 if (err) {
@@ -172,6 +172,7 @@ function viewEmployeesByDepartment() {
         .then((value) => { return value })
         .then(prompt)
         .then((answer) => {
+            //same thing here where I joined the employee names into one column and joined via respective keys
             db.execute(`SELECT employees.id, CONCAT (employees.first_Name, ' ', employees.last_Name) as Employees, roles.title FROM employees 
         LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id WHERE roles.department_id = ${answer.department}`, (err, results) => {
                 if (err) {
@@ -349,23 +350,6 @@ function updateEmployeeRole() {
 }
 
 function updateEmployeeManager() {
-    Promise.all([buildEmployeeList, buildManagerList])
-        .then((value) => { return value })
-        .then(prompt)
-        .then((answer) => {
-            answer = JSON.parse(JSON.stringify(answer));
-
-            db.execute(`UPDATE employees SET manager_id = ${answer.manager} WHERE id = ${answer.employee}`, (err, results) => {
-                if (err) {
-                    console.log(err);
-                    process.exit();
-                } else {
-                    console.log(`Employee's manager has been updated...`);
-                    promptMainMenu();
-                }
-            })
-        })
-
     const prompt = (value) => {
         return inquirer.prompt([
             {
@@ -382,6 +366,22 @@ function updateEmployeeManager() {
             }
         ])
     }
+    Promise.all([buildEmployeeList, buildManagerList])
+        .then((value) => { return value })
+        .then(prompt)
+        .then((answer) => {
+            answer = JSON.parse(JSON.stringify(answer));
+
+            db.execute(`UPDATE employees SET manager_id = ${answer.manager} WHERE id = ${answer.employee}`, (err, results) => {
+                if (err) {
+                    console.log(err);
+                    process.exit();
+                } else {
+                    console.log(`Employee's manager has been updated...`);
+                    promptMainMenu();
+                }
+            })
+        })
 }
 
 //------------------------Sums--------------------------//
